@@ -25,7 +25,6 @@ class GifKeyboardService : InputMethodService() {
     private var isLoading = false
     private var currentDownloadJob: Job? = null
 
-    // ── Categories shown as chips ─────────────────────────────────────────────
     private val categories = listOf(
         "🔥 Trending", "💋 Kiss", "👙 Boobs", "🍑 Ass",
         "❤️ Sex", "🫦 Blowjob", "🔞 Fuck", "👩 Teen",
@@ -45,11 +44,10 @@ class GifKeyboardService : InputMethodService() {
         val searchBar = view.findViewById<EditText>(R.id.searchBar)
         val loadingBar = view.findViewById<ProgressBar>(R.id.loadingBar)
         val statusText = view.findViewById<TextView>(R.id.statusText)
-        val categoryScroll = view.findViewById<HorizontalScrollView>(R.id.categoryScroll)
         val categoryContainer = view.findViewById<LinearLayout>(R.id.categoryContainer)
         val keyboardView = view.findViewById<LinearLayout>(R.id.inlineKeyboard)
 
-        // ── Build category chips ──────────────────────────────────────────────
+        // Build category chips
         categories.forEachIndexed { index, label ->
             val chip = layoutInflater.inflate(R.layout.category_chip, categoryContainer, false) as TextView
             chip.text = label
@@ -62,10 +60,10 @@ class GifKeyboardService : InputMethodService() {
             categoryContainer.addView(chip)
         }
 
-        // ── Inline QWERTY keyboard ────────────────────────────────────────────
-        setupInlineKeyboard(keyboardView, searchBar)
+        // Inline QWERTY — pass loadingBar and statusText directly
+        setupInlineKeyboard(keyboardView, searchBar, loadingBar, statusText)
 
-        // ── GIF grid ─────────────────────────────────────────────────────────
+        // GIF grid
         val layoutManager = GridLayoutManager(this, 2)
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
@@ -85,7 +83,7 @@ class GifKeyboardService : InputMethodService() {
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = gifAdapter
 
-        // ── Initial load ──────────────────────────────────────────────────────
+        // Initial load
         serviceScope.launch {
             loadingBar.visibility = View.VISIBLE
             statusText.text = "Loading..."
@@ -98,7 +96,7 @@ class GifKeyboardService : InputMethodService() {
             }
         }
 
-        // ── Search bar action ─────────────────────────────────────────────────
+        // Search bar action
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val q = searchBar.text.toString().trim()
@@ -114,8 +112,12 @@ class GifKeyboardService : InputMethodService() {
         return view
     }
 
-    // ── Inline QWERTY ─────────────────────────────────────────────────────────
-    private fun setupInlineKeyboard(keyboardView: LinearLayout, searchBar: EditText) {
+    private fun setupInlineKeyboard(
+        keyboardView: LinearLayout,
+        searchBar: EditText,
+        loadingBar: ProgressBar,
+        statusText: TextView
+    ) {
         val rows = listOf(
             listOf("q","w","e","r","t","y","u","i","o","p"),
             listOf("a","s","d","f","g","h","j","k","l"),
@@ -135,17 +137,13 @@ class GifKeyboardService : InputMethodService() {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     )
                 }
-
                 row.forEach { key ->
                     val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
                     val displayKey = if (isCaps && key.length == 1) key.uppercase() else key
                     btn.text = displayKey
-
-                    // wider keys
                     if (key == "Space" || key == "Search") {
                         (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
                     }
-
                     btn.setOnClickListener {
                         val current = searchBar.text.toString()
                         val sel = searchBar.selectionEnd.coerceAtLeast(0)
@@ -169,15 +167,10 @@ class GifKeyboardService : InputMethodService() {
                                 if (q.isNotEmpty()) {
                                     currentQuery = q
                                     currentPage = 1
-                                    // dismiss keyboard view and search
-                                    serviceScope.launch {
-                                        val lbr = currentInputView?.findViewById<ProgressBar>(R.id.loadingBar) ?: return@launch
-                                        val st = currentInputView?.findViewById<TextView>(R.id.statusText) ?: return@launch
-                                        loadGifs(lbr, st)
-                                    }
+                                    serviceScope.launch { loadGifs(loadingBar, statusText) }
                                 }
                             }
-                            "123" -> { /* TODO: number row */ }
+                            "123" -> { }
                             else -> {
                                 val char = if (isCaps) key.uppercase() else key
                                 searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
@@ -195,7 +188,6 @@ class GifKeyboardService : InputMethodService() {
         refreshKeys()
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
     private suspend fun fetchToken() {
         try {
             val response = withContext(Dispatchers.IO) { RedGifsClient.api.getToken() }
@@ -205,9 +197,8 @@ class GifKeyboardService : InputMethodService() {
         }
     }
 
-    // ── Load first page ───────────────────────────────────────────────────────
     private suspend fun loadGifs(loadingBar: ProgressBar, statusText: TextView) {
-        if (authToken.isEmpty()) { fetchToken() }
+        if (authToken.isEmpty()) fetchToken()
         isLoading = true
         loadingBar.visibility = View.VISIBLE
         statusText.text = "Searching..."
@@ -234,7 +225,6 @@ class GifKeyboardService : InputMethodService() {
         isLoading = false
     }
 
-    // ── Load more pages ───────────────────────────────────────────────────────
     private suspend fun loadMoreGifs(loadingBar: ProgressBar, statusText: TextView) {
         isLoading = true
         loadingBar.visibility = View.VISIBLE
@@ -261,7 +251,6 @@ class GifKeyboardService : InputMethodService() {
         isLoading = false
     }
 
-    // ── Send GIF ──────────────────────────────────────────────────────────────
     private fun sendGif(gif: GifItem, loadingBar: ProgressBar, statusText: TextView) {
         val ic = currentInputConnection ?: return
         val editorInfo = currentInputEditorInfo ?: return
