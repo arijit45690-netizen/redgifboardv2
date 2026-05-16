@@ -259,7 +259,7 @@ class GifKeyboardService : InputMethodService() {
             statusText.text = "Sending..."
             loadingBar.visibility = View.VISIBLE
             try {
-                val url = gif.urls.sd.ifEmpty { gif.urls.hd }
+                val url = "https://i.redgifs.com/i/${gif.id}.gif"
                 val cacheFile = withContext(Dispatchers.IO) {
                     val file = File(cacheDir, "${gif.id}.gif")
                     if (!file.exists()) {
