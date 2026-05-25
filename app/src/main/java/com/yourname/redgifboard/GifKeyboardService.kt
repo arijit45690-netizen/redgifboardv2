@@ -259,9 +259,9 @@ class GifKeyboardService : InputMethodService() {
             statusText.text = "Sending..."
             loadingBar.visibility = View.VISIBLE
             try {
-                val url = "https://i.redgifs.com/i/${gif.id}.gif"
+                val url = if (gif.urls.sd.isNotEmpty()) gif.urls.sd else gif.urls.vthumbnail
                 val cacheFile = withContext(Dispatchers.IO) {
-                    val file = File(cacheDir, "${gif.id}.gif")
+                    val file = File(cacheDir, "${gif.id}.mp4")
                     if (!file.exists()) {
                         URL(url).openStream().use { input ->
                             file.outputStream().use { output -> input.copyTo(output) }
@@ -276,7 +276,7 @@ class GifKeyboardService : InputMethodService() {
                 )
                 val inputContentInfo = InputContentInfoCompat(
                     contentUri,
-                    ClipDescription("gif", arrayOf("image/gif")),
+                    ClipDescription("video", arrayOf("video/mp4")),
                     null
                 )
                 InputConnectionCompat.commitContent(
