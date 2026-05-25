@@ -150,8 +150,7 @@ class GifKeyboardService : InputMethodService() {
                         when (key) {
                             "⌫" -> {
                                 if (current.isNotEmpty() && sel > 0) {
-                                    searchBar.setText(current.removeRange(sel - 1, sel))
-                                    searchBar.setSelection((sel - 1).coerceAtLeast(0))
+                                    searchBar.text.delete(sel - 1, sel)
                                 }
                             }
                             "⇧" -> {
@@ -159,8 +158,7 @@ class GifKeyboardService : InputMethodService() {
                                 refreshKeys()
                             }
                             "Space" -> {
-                                searchBar.setText(current.substring(0, sel) + " " + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
+                                searchBar.text.insert(sel, " ")
                             }
                             "Search", "⏎" -> {
                                 val q = searchBar.text.toString().trim()
@@ -173,8 +171,7 @@ class GifKeyboardService : InputMethodService() {
                             "123" -> { }
                             else -> {
                                 val char = if (isCaps) key.uppercase() else key
-                                searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
+                                searchBar.text.insert(sel, char)
                                 if (isCaps) { isCaps = false; refreshKeys() }
                             }
                         }
