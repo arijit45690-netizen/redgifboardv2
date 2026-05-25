@@ -157,6 +157,8 @@ class GifKeyboardService : InputMethodService() {
                                     editable.delete(start - 1, end)
                                 } else if (start != end) {
                                     editable.delete(start, end)
+                                if (current.isNotEmpty() && sel > 0) {
+                                    searchBar.text.delete(sel - 1, sel)
                                 }
                             }
                             "⇧" -> {
@@ -165,6 +167,7 @@ class GifKeyboardService : InputMethodService() {
                             }
                             "Space" -> {
                                 editable.replace(start, end, " ")
+                                searchBar.text.insert(sel, " ")
                             }
                             "Search", "⏎" -> {
                                 val q = searchBar.text.toString().trim()
@@ -178,6 +181,7 @@ class GifKeyboardService : InputMethodService() {
                             else -> {
                                 val char = if (isCaps) key.uppercase() else key
                                 editable.replace(start, end, char)
+                                searchBar.text.insert(sel, char)
                                 if (isCaps) { isCaps = false; refreshKeys() }
                             }
                         }
