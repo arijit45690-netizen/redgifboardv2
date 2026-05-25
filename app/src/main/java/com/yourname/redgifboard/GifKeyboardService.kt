@@ -145,10 +145,18 @@ class GifKeyboardService : InputMethodService() {
                         (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
                     }
                     btn.setOnClickListener {
-                        val current = searchBar.text.toString()
-                        val sel = searchBar.selectionEnd.coerceAtLeast(0)
+                        val editable = searchBar.text
+                        val selStart = searchBar.selectionStart.coerceAtLeast(0)
+                        val selEnd = searchBar.selectionEnd.coerceAtLeast(0)
+                        val start = minOf(selStart, selEnd)
+                        val end = maxOf(selStart, selEnd)
+
                         when (key) {
                             "⌫" -> {
+                                if (start == end && start > 0) {
+                                    editable.delete(start - 1, end)
+                                } else if (start != end) {
+                                    editable.delete(start, end)
                                 if (current.isNotEmpty() && sel > 0) {
                                     searchBar.text.delete(sel - 1, sel)
                                 }
@@ -158,6 +166,7 @@ class GifKeyboardService : InputMethodService() {
                                 refreshKeys()
                             }
                             "Space" -> {
+                                editable.replace(start, end, " ")
                                 searchBar.text.insert(sel, " ")
                             }
                             "Search", "⏎" -> {
@@ -171,6 +180,7 @@ class GifKeyboardService : InputMethodService() {
                             "123" -> { }
                             else -> {
                                 val char = if (isCaps) key.uppercase() else key
+                                editable.replace(start, end, char)
                                 searchBar.text.insert(sel, char)
                                 if (isCaps) { isCaps = false; refreshKeys() }
                             }
