@@ -133,52 +133,52 @@ class GifKeyboardService : InputMethodService() {
                 if (key.length == 1) {
                     btn.text = if (isCaps) key.uppercase() else key
                 }
-            }
-        }
+                row.forEach { key ->
+                    val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
+                    val displayKey = if (isCaps && key.length == 1) key.uppercase() else key
+                    btn.text = displayKey
+                    if (key == "Space" || key == "Search") {
+                        (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
+                    }
+                    btn.setOnClickListener {
+                        val editable = searchBar.text
+                        val selStart = searchBar.selectionStart.coerceAtLeast(0)
+                        val selEnd = searchBar.selectionEnd.coerceAtLeast(0)
+                        val start = minOf(selStart, selEnd)
+                        val end = maxOf(selStart, selEnd)
 
-        keyboardView.removeAllViews()
-        rows.forEach { row ->
-            val rowLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-            row.forEach { key ->
-                val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
-                val displayKey = if (isCaps && key.length == 1) key.uppercase() else key
-                btn.text = displayKey
-                if (key == "Space" || key == "Search") {
-                    (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
-                }
-
-                keyButtons.add(Pair(key, btn))
-
-                btn.setOnClickListener {
-                    val current = searchBar.text.toString()
-                    val sel = searchBar.selectionEnd.coerceAtLeast(0)
-                    when (key) {
-                        "⌫" -> {
-                            if (current.isNotEmpty() && sel > 0) {
-                                searchBar.setText(current.removeRange(sel - 1, sel))
-                                searchBar.setSelection((sel - 1).coerceAtLeast(0))
+                        when (key) {
+                            "⌫" -> {
+                                if (start == end && start > 0) {
+                                    editable.delete(start - 1, end)
+                                } else if (start != end) {
+                                    editable.delete(start, end)
+                                if (current.isNotEmpty() && sel > 0) {
+                                    searchBar.text.delete(sel - 1, sel)
+                                }
                             }
-                        }
-                        "⇧" -> {
-                            isCaps = !isCaps
-                            refreshKeys()
-                        }
-                        "Space" -> {
-                            searchBar.setText(current.substring(0, sel) + " " + current.substring(sel))
-                            searchBar.setSelection(sel + 1)
-                        }
-                        "Search", "⏎" -> {
-                            val q = searchBar.text.toString().trim()
-                            if (q.isNotEmpty()) {
-                                currentQuery = q
-                                currentPage = 1
-                                serviceScope.launch { loadGifs(loadingBar, statusText) }
+                            "⇧" -> {
+                                isCaps = !isCaps
+                                refreshKeys()
+                            }
+                            "Space" -> {
+                                editable.replace(start, end, " ")
+                                searchBar.text.insert(sel, " ")
+                            }
+                            "Search", "⏎" -> {
+                                val q = searchBar.text.toString().trim()
+                                if (q.isNotEmpty()) {
+                                    currentQuery = q
+                                    currentPage = 1
+                                    serviceScope.launch { loadGifs(loadingBar, statusText) }
+                                }
+                            }
+                            "123" -> { }
+                            else -> {
+                                val char = if (isCaps) key.uppercase() else key
+                                editable.replace(start, end, char)
+                                searchBar.text.insert(sel, char)
+                                if (isCaps) { isCaps = false; refreshKeys() }
                             }
                         }
                         "123" -> { }
