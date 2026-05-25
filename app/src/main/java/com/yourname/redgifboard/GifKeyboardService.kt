@@ -126,16 +126,12 @@ class GifKeyboardService : InputMethodService() {
         )
 
         var isCaps = false
+        val keyButtons = mutableListOf<Pair<String, TextView>>()
 
         fun refreshKeys() {
-            keyboardView.removeAllViews()
-            rows.forEach { row ->
-                val rowLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
+            keyButtons.forEach { (key, btn) ->
+                if (key.length == 1) {
+                    btn.text = if (isCaps) key.uppercase() else key
                 }
                 row.forEach { key ->
                     val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
@@ -185,11 +181,18 @@ class GifKeyboardService : InputMethodService() {
                                 if (isCaps) { isCaps = false; refreshKeys() }
                             }
                         }
+                        "123" -> { }
+                        else -> {
+                            val char = if (isCaps) key.uppercase() else key
+                            searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
+                            searchBar.setSelection(sel + 1)
+                            if (isCaps) { isCaps = false; refreshKeys() }
+                        }
                     }
-                    rowLayout.addView(btn)
                 }
-                keyboardView.addView(rowLayout)
+                rowLayout.addView(btn)
             }
+            keyboardView.addView(rowLayout)
         }
 
         refreshKeys()
