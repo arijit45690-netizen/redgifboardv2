@@ -259,16 +259,7 @@ class GifKeyboardService : InputMethodService() {
             statusText.text = "Sending..."
             loadingBar.visibility = View.VISIBLE
             try {
-                val url = "https://i.redgifs.com/i/${gif.id}.gif"
-                val cacheFile = withContext(Dispatchers.IO) {
-                    val file = File(cacheDir, "${gif.id}.gif")
-                    if (!file.exists()) {
-                        URL(url).openStream().use { input ->
-                            file.outputStream().use { output -> input.copyTo(output) }
-                        }
-                    }
-                    file
-                }
+                val cacheFile = downloadGifFile(gif)
                 val contentUri = FileProvider.getUriForFile(
                     this@GifKeyboardService,
                     "${packageName}.fileprovider",
@@ -294,6 +285,18 @@ class GifKeyboardService : InputMethodService() {
                 e.printStackTrace()
             }
         }
+    }
+
+    private suspend fun downloadGifFile(gif: GifItem): File = withContext(Dispatchers.IO) {
+        val fileName = "${gif.id}.gif"
+        val url = "https://i.redgifs.com/i/$fileName"
+        val file = File(cacheDir, fileName)
+        if (!file.exists()) {
+            URL(url).openStream().use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        file
     }
 
     override fun onDestroy() {
