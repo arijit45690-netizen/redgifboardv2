@@ -2,6 +2,7 @@ package com.yourname.redgifboard
 
 import android.content.ClipDescription
 import android.inputmethodservice.InputMethodService
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.*
@@ -15,6 +16,10 @@ import java.io.File
 import java.net.URL
 
 class GifKeyboardService : InputMethodService() {
+
+    companion object {
+        private const val TAG = "GifKeyboardService"
+    }
 
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private lateinit var gifAdapter: GifAdapter
@@ -193,7 +198,7 @@ class GifKeyboardService : InputMethodService() {
             val response = withContext(Dispatchers.IO) { RedGifsClient.api.getToken() }
             authToken = response.token
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to fetch token", e)
         }
     }
 
@@ -220,7 +225,7 @@ class GifKeyboardService : InputMethodService() {
         } catch (e: Exception) {
             loadingBar.visibility = View.GONE
             statusText.text = "Error. Try again."
-            e.printStackTrace()
+            Log.e(TAG, "Failed to load GIFs", e)
         }
         isLoading = false
     }
@@ -246,7 +251,7 @@ class GifKeyboardService : InputMethodService() {
         } catch (e: Exception) {
             loadingBar.visibility = View.GONE
             statusText.text = "Error loading more."
-            e.printStackTrace()
+            Log.e(TAG, "Failed to load more GIFs", e)
         }
         isLoading = false
     }
@@ -291,7 +296,7 @@ class GifKeyboardService : InputMethodService() {
             } catch (e: Exception) {
                 loadingBar.visibility = View.GONE
                 statusText.text = "Failed to send."
-                e.printStackTrace()
+                Log.e(TAG, "Failed to send GIF", e)
             }
         }
     }
