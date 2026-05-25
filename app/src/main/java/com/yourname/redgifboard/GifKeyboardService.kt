@@ -52,10 +52,8 @@ class GifKeyboardService : InputMethodService() {
             val chip = layoutInflater.inflate(R.layout.category_chip, categoryContainer, false) as TextView
             chip.text = label
             chip.setOnClickListener {
-                currentQuery = categoryQueries[index]
                 searchBar.setText(categoryQueries[index])
-                currentPage = 1
-                serviceScope.launch { loadGifs(loadingBar, statusText) }
+                performSearch(categoryQueries[index], loadingBar, statusText)
             }
             categoryContainer.addView(chip)
         }
@@ -101,9 +99,7 @@ class GifKeyboardService : InputMethodService() {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val q = searchBar.text.toString().trim()
                 if (q.isNotEmpty()) {
-                    currentQuery = q
-                    currentPage = 1
-                    serviceScope.launch { loadGifs(loadingBar, statusText) }
+                    performSearch(q, loadingBar, statusText)
                 }
                 true
             } else false
@@ -165,9 +161,7 @@ class GifKeyboardService : InputMethodService() {
                             "Search", "⏎" -> {
                                 val q = searchBar.text.toString().trim()
                                 if (q.isNotEmpty()) {
-                                    currentQuery = q
-                                    currentPage = 1
-                                    serviceScope.launch { loadGifs(loadingBar, statusText) }
+                                    performSearch(q, loadingBar, statusText)
                                 }
                             }
                             "123" -> { }
@@ -186,6 +180,13 @@ class GifKeyboardService : InputMethodService() {
         }
 
         refreshKeys()
+    }
+
+
+    private fun performSearch(query: String, loadingBar: ProgressBar, statusText: TextView) {
+        currentQuery = query
+        currentPage = 1
+        serviceScope.launch { loadGifs(loadingBar, statusText) }
     }
 
     private suspend fun fetchToken() {
