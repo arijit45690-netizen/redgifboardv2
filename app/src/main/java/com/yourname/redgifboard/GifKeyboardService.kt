@@ -47,7 +47,21 @@ class GifKeyboardService : InputMethodService() {
         val categoryContainer = view.findViewById<LinearLayout>(R.id.categoryContainer)
         val keyboardView = view.findViewById<LinearLayout>(R.id.inlineKeyboard)
 
-        // Build category chips
+        setupCategoryChips(categoryContainer, searchBar, loadingBar, statusText)
+        setupInlineKeyboard(keyboardView, searchBar, loadingBar, statusText)
+        setupGifGrid(recyclerView, loadingBar, statusText)
+        setupInitialLoad(loadingBar, statusText)
+        setupSearchBarAction(searchBar, loadingBar, statusText)
+
+        return view
+    }
+
+    private fun setupCategoryChips(
+        categoryContainer: LinearLayout,
+        searchBar: EditText,
+        loadingBar: ProgressBar,
+        statusText: TextView
+    ) {
         categories.forEachIndexed { index, label ->
             val chip = layoutInflater.inflate(R.layout.category_chip, categoryContainer, false) as TextView
             chip.text = label
@@ -59,11 +73,13 @@ class GifKeyboardService : InputMethodService() {
             }
             categoryContainer.addView(chip)
         }
+    }
 
-        // Inline QWERTY — pass loadingBar and statusText directly
-        setupInlineKeyboard(keyboardView, searchBar, loadingBar, statusText)
-
-        // GIF grid
+    private fun setupGifGrid(
+        recyclerView: RecyclerView,
+        loadingBar: ProgressBar,
+        statusText: TextView
+    ) {
         val layoutManager = GridLayoutManager(this, 2)
         layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
@@ -82,8 +98,12 @@ class GifKeyboardService : InputMethodService() {
         )
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = gifAdapter
+    }
 
-        // Initial load
+    private fun setupInitialLoad(
+        loadingBar: ProgressBar,
+        statusText: TextView
+    ) {
         serviceScope.launch {
             loadingBar.visibility = View.VISIBLE
             statusText.text = "Loading..."
@@ -95,8 +115,13 @@ class GifKeyboardService : InputMethodService() {
                 statusText.text = "Auth failed. Check connection."
             }
         }
+    }
 
-        // Search bar action
+    private fun setupSearchBarAction(
+        searchBar: EditText,
+        loadingBar: ProgressBar,
+        statusText: TextView
+    ) {
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val q = searchBar.text.toString().trim()
@@ -108,8 +133,6 @@ class GifKeyboardService : InputMethodService() {
                 true
             } else false
         }
-
-        return view
     }
 
     private fun setupInlineKeyboard(
