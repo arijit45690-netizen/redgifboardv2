@@ -27,6 +27,13 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
