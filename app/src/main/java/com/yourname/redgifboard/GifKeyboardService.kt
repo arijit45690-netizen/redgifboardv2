@@ -130,53 +130,13 @@ class GifKeyboardService : InputMethodService() {
         fun refreshKeys() {
             keyboardView.removeAllViews()
             rows.forEach { row ->
-                val rowLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-                }
+                val rowLayout = createRowLayout()
                 row.forEach { key ->
-                    val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
-                    val displayKey = if (isCaps && key.length == 1) key.uppercase() else key
-                    btn.text = displayKey
-                    if (key == "Space" || key == "Search") {
-                        (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
-                    }
+                    val btn = createKeyButton(key, isCaps, rowLayout)
                     btn.setOnClickListener {
-                        val current = searchBar.text.toString()
-                        val sel = searchBar.selectionEnd.coerceAtLeast(0)
-                        when (key) {
-                            "⌫" -> {
-                                if (current.isNotEmpty() && sel > 0) {
-                                    searchBar.setText(current.removeRange(sel - 1, sel))
-                                    searchBar.setSelection((sel - 1).coerceAtLeast(0))
-                                }
-                            }
-                            "⇧" -> {
-                                isCaps = !isCaps
-                                refreshKeys()
-                            }
-                            "Space" -> {
-                                searchBar.setText(current.substring(0, sel) + " " + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
-                            }
-                            "Search", "⏎" -> {
-                                val q = searchBar.text.toString().trim()
-                                if (q.isNotEmpty()) {
-                                    currentQuery = q
-                                    currentPage = 1
-                                    serviceScope.launch { loadGifs(loadingBar, statusText) }
-                                }
-                            }
-                            "123" -> { }
-                            else -> {
-                                val char = if (isCaps) key.uppercase() else key
-                                searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
-                                if (isCaps) { isCaps = false; refreshKeys() }
-                            }
+                        handleKeyClick(key, isCaps, searchBar, loadingBar, statusText) { newCaps ->
+                            isCaps = newCaps
+                            refreshKeys()
                         }
                     }
                     rowLayout.addView(btn)
@@ -186,6 +146,66 @@ class GifKeyboardService : InputMethodService() {
         }
 
         refreshKeys()
+    }
+
+    private fun createRowLayout(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
+    private fun createKeyButton(key: String, isCaps: Boolean, parent: LinearLayout): TextView {
+        val btn = layoutInflater.inflate(R.layout.key_button, parent, false) as TextView
+        val displayKey = if (isCaps && key.length == 1) key.uppercase() else key
+        btn.text = displayKey
+        if (key == "Space" || key == "Search") {
+            (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
+        }
+        return btn
+    }
+
+    private fun handleKeyClick(
+        key: String,
+        isCaps: Boolean,
+        searchBar: EditText,
+        loadingBar: ProgressBar,
+        statusText: TextView,
+        onCapsChange: (Boolean) -> Unit
+    ) {
+        val current = searchBar.text.toString()
+        val sel = searchBar.selectionEnd.coerceAtLeast(0)
+        when (key) {
+            "⌫" -> {
+                if (current.isNotEmpty() && sel > 0) {
+                    searchBar.setText(current.removeRange(sel - 1, sel))
+                    searchBar.setSelection((sel - 1).coerceAtLeast(0))
+                }
+            }
+            "⇧" -> onCapsChange(!isCaps)
+            "Space" -> {
+                searchBar.setText(current.substring(0, sel) + " " + current.substring(sel))
+                searchBar.setSelection(sel + 1)
+            }
+            "Search", "⏎" -> {
+                val q = searchBar.text.toString().trim()
+                if (q.isNotEmpty()) {
+                    currentQuery = q
+                    currentPage = 1
+                    serviceScope.launch { loadGifs(loadingBar, statusText) }
+                }
+            }
+            "123" -> { }
+            else -> {
+                val char = if (isCaps) key.uppercase() else key
+                searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
+                searchBar.setSelection(sel + 1)
+                if (isCaps) onCapsChange(false)
+            }
+        }
     }
 
     private suspend fun fetchToken() {
