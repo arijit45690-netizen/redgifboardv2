@@ -277,7 +277,7 @@ class GifKeyboardService : InputMethodService() {
                 )
                 val inputContentInfo = InputContentInfoCompat(
                     contentUri,
-                    ClipDescription("gif", arrayOf("image/gif")),
+                    ClipDescription("video", arrayOf("video/mp4")),
                     null
                 )
                 InputConnectionCompat.commitContent(

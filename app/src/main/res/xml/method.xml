@@ -4,5 +4,5 @@
     <subtype
         android:label="RedGif Board"
         android:imeSubtypeMode="none"
-        android:imeSubtypeExtraValue="contentMimeTypes=image/gif" />
+        android:imeSubtypeExtraValue="contentMimeTypes=image/gif,video/mp4" />
 </input-method>

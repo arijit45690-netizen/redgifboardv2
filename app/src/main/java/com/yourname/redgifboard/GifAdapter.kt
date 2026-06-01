@@ -48,9 +48,9 @@ class GifAdapter(
         if (holder is GifViewHolder) {
             val gif = gifs[position]
             // Try thumbnail first, fall back to sd url
-            val url = "https://i.redgifs.com/i/${gif.id}.gif"
+            val url = gif.urls.thumbnail
             Glide.with(holder.imageView.context)
-                .asGif()
+
                 .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .placeholder(android.R.color.darker_gray)
