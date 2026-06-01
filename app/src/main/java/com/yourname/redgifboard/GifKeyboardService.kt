@@ -126,16 +126,12 @@ class GifKeyboardService : InputMethodService() {
         )
 
         var isCaps = false
+        val keyButtons = mutableListOf<Pair<String, TextView>>()
 
         fun refreshKeys() {
-            keyboardView.removeAllViews()
-            rows.forEach { row ->
-                val rowLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
+            keyButtons.forEach { (key, btn) ->
+                if (key.length == 1) {
+                    btn.text = if (isCaps) key.uppercase() else key
                 }
                 row.forEach { key ->
                     val btn = layoutInflater.inflate(R.layout.key_button, rowLayout, false) as TextView
@@ -145,13 +141,20 @@ class GifKeyboardService : InputMethodService() {
                         (btn.layoutParams as LinearLayout.LayoutParams).weight = 2f
                     }
                     btn.setOnClickListener {
-                        val current = searchBar.text.toString()
-                        val sel = searchBar.selectionEnd.coerceAtLeast(0)
+                        val editable = searchBar.text
+                        val selStart = searchBar.selectionStart.coerceAtLeast(0)
+                        val selEnd = searchBar.selectionEnd.coerceAtLeast(0)
+                        val start = minOf(selStart, selEnd)
+                        val end = maxOf(selStart, selEnd)
+
                         when (key) {
                             "⌫" -> {
+                                if (start == end && start > 0) {
+                                    editable.delete(start - 1, end)
+                                } else if (start != end) {
+                                    editable.delete(start, end)
                                 if (current.isNotEmpty() && sel > 0) {
-                                    searchBar.setText(current.removeRange(sel - 1, sel))
-                                    searchBar.setSelection((sel - 1).coerceAtLeast(0))
+                                    searchBar.text.delete(sel - 1, sel)
                                 }
                             }
                             "⇧" -> {
@@ -159,8 +162,8 @@ class GifKeyboardService : InputMethodService() {
                                 refreshKeys()
                             }
                             "Space" -> {
-                                searchBar.setText(current.substring(0, sel) + " " + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
+                                editable.replace(start, end, " ")
+                                searchBar.text.insert(sel, " ")
                             }
                             "Search", "⏎" -> {
                                 val q = searchBar.text.toString().trim()
@@ -173,16 +176,23 @@ class GifKeyboardService : InputMethodService() {
                             "123" -> { }
                             else -> {
                                 val char = if (isCaps) key.uppercase() else key
-                                searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
-                                searchBar.setSelection(sel + 1)
+                                editable.replace(start, end, char)
+                                searchBar.text.insert(sel, char)
                                 if (isCaps) { isCaps = false; refreshKeys() }
                             }
                         }
+                        "123" -> { }
+                        else -> {
+                            val char = if (isCaps) key.uppercase() else key
+                            searchBar.setText(current.substring(0, sel) + char + current.substring(sel))
+                            searchBar.setSelection(sel + 1)
+                            if (isCaps) { isCaps = false; refreshKeys() }
+                        }
                     }
-                    rowLayout.addView(btn)
                 }
-                keyboardView.addView(rowLayout)
+                rowLayout.addView(btn)
             }
+            keyboardView.addView(rowLayout)
         }
 
         refreshKeys()
@@ -259,16 +269,7 @@ class GifKeyboardService : InputMethodService() {
             statusText.text = "Sending..."
             loadingBar.visibility = View.VISIBLE
             try {
-                val url = if (gif.urls.sd.isNotEmpty()) gif.urls.sd else gif.urls.vthumbnail
-                val cacheFile = withContext(Dispatchers.IO) {
-                    val file = File(cacheDir, "${gif.id}.mp4")
-                    if (!file.exists()) {
-                        URL(url).openStream().use { input ->
-                            file.outputStream().use { output -> input.copyTo(output) }
-                        }
-                    }
-                    file
-                }
+                val cacheFile = downloadGifFile(gif)
                 val contentUri = FileProvider.getUriForFile(
                     this@GifKeyboardService,
                     "${packageName}.fileprovider",
@@ -294,6 +295,18 @@ class GifKeyboardService : InputMethodService() {
                 e.printStackTrace()
             }
         }
+    }
+
+    private suspend fun downloadGifFile(gif: GifItem): File = withContext(Dispatchers.IO) {
+        val fileName = "${gif.id}.gif"
+        val url = "https://i.redgifs.com/i/$fileName"
+        val file = File(cacheDir, fileName)
+        if (!file.exists()) {
+            URL(url).openStream().use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        file
     }
 
     override fun onDestroy() {
